@@ -6,6 +6,14 @@ authors = ["Advait Shinde <advait.shinde@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
+jupyterlab = "^3.5.2"
+torch-directml = "^0.1.13-alpha.221216"
+torch = "^1.13.1"
+torchvision = "^0.14.1"
+matplotlib = "^3.6.2"
+pandas = "^1.5.2"
+numpy = "^1.24.0"
+scipy = "^1.9.3"
 
 [tool.poetry.dev-dependencies]
 

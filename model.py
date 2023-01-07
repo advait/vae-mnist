@@ -24,7 +24,7 @@ class VAE(pl.LightningModule):
         self.epoch_count = 0
 
     @staticmethod
-    def add_model_specific_args(parser):
+    def add_argparse_args(parser):
         parser = parser.add_argument_group("VAEModel")
         parser.add_argument("--latent_dim", type=int, default=10)
         return parser
@@ -154,6 +154,13 @@ class MNISTDataModule(pl.LightningDataModule):
         self.batch_size = batch_size
         self.data_dir = data_dir
 
+    @staticmethod
+    def add_argparse_args(parser):
+        parser = parser.add_argument_group("VAEModel")
+        parser.add_argument("--batch_size", type=int, default=64)
+        parser.add_argument("--data_dir", type=str, default="data/")
+        return parser
+
     def setup(self, stage=None):
         mnist_train = datasets.MNIST(
             self.data_dir,
@@ -201,10 +208,9 @@ class MNISTDataModule(pl.LightningDataModule):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("--batch_size", type=int, default=64)
-    parser.add_argument("--data_dir", type=str, default="data/")
-    VAE.add_model_specific_args(parser)
+    MNISTDataModule.add_argparse_args(parser)
     Trainer.add_argparse_args(parser)
+    VAE.add_argparse_args(parser)
 
     args = parser.parse_args()
     dict_args = vars(args)

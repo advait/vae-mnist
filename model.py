@@ -1,4 +1,5 @@
 from argparse import ArgumentParser
+import functools
 import code
 
 import numpy as np
@@ -14,11 +15,13 @@ import matplotlib.pyplot as plt
 
 
 class VAE(pl.LightningModule):
-    def __init__(self, latent_dim, **kwargs):
+    def __init__(self, latent_dim, data_module, **kwargs):
         super().__init__()
         self.latent_dim = latent_dim
         self.encoder = Encoder(latent_dim)
         self.decoder = Decoder(latent_dim)
+        self.data_module = data_module
+        self.epoch_count = 0
 
     @staticmethod
     def add_model_specific_args(parser):
@@ -48,23 +51,26 @@ class VAE(pl.LightningModule):
         x_hat, z, mu, log_var = self(x)
         loss = self.loss(x_hat, x, mu, log_var)
         self.log("loss/val", loss)
-        self.logger.experiment.add_figure("vae_output", self.draw_outputs(batch))
         return loss
+
+    def training_epoch_end(self, outputs):
+        self.epoch_count += 1
+        self.logger.experiment.add_figure(
+            "vae_output", self.draw_outputs(), self.epoch_count
+        )
 
     def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), lr=1e-3)
         return optimizer
 
-    def draw_outputs(self, batch):
+    def draw_outputs(self):
         """Returns a matplotlib figure showing the VAE input and output."""
         plt.figure(figsize=(16, 4.5))
-        x, labels = batch
-        labels = labels.cpu()
+        images = self.data_module.template_images()
         n = 10
-        t_idx = {i: np.where(labels == i)[0][0] for i in range(n)}
         for i in range(n):
             ax = plt.subplot(2, n, i + 1)
-            img = einops.rearrange(x[t_idx[i]][0], "h w -> 1 1 h w")
+            img = images[i].to(self.device)
             vae.eval()
             with torch.no_grad():
                 x_hat, _, _, _ = vae(img)
@@ -177,8 +183,20 @@ class MNISTDataModule(pl.LightningDataModule):
             self.test_dataset,
             batch_size=self.batch_size,
             num_workers=4,
-            shuffle=True,
+            shuffle=False,
         )
+
+    @functools.cache
+    def template_images(self):
+        """Returns a dict of image tensors that we use every epoch to judge the quality of the
+        model."""
+        labels = self.test_dataset.targets.numpy()
+        d = {}
+        n = 10
+        for i in range(n):
+            index = np.where(labels == i)[0][0]
+            d[i] = einops.rearrange(self.test_dataset[index][0], "1 h w -> 1 1 h w")
+        return d
 
 
 if __name__ == "__main__":
@@ -191,8 +209,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     dict_args = vars(args)
 
-    trainer = Trainer.from_argparse_args(args)
-    vae = VAE(**dict_args)
-
     mnist = MNISTDataModule(**dict_args)
+    trainer = Trainer.from_argparse_args(args)
+    vae = VAE(data_module=mnist, **dict_args)
+
     trainer.fit(vae, mnist)

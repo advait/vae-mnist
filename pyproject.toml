@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "light"
+version = "0.1.0"
+description = ""
+authors = ["Advait Shinde <advait.shinde@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+lightning = "^1.8.6"
+pytorch-lightning = "^1.8.6"
+torchvision = "^0.14.1"
+einops = "^0.6.0"
+tensorboard = "^2.11.0"
+matplotlib = "^3.6.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
